@@ -34,6 +34,16 @@ void processCommand(String command) {
 	Serial.println(command);
 }
 
+void search() {
+	turnDegrees(stepperX, 180);
+	turnDegrees(stepperY, 45);
+	turnDegrees(stepperX, -180);
+	turnDegrees(stepperY, 45);
+	
+	// back to zero:	
+	turnDegrees(stepperY, -90);
+}
+
 void loop() {
 
     // if (Serial.available() > 0) { // Check if data is available
