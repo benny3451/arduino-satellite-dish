@@ -32,5 +32,5 @@ void loop() {
 }
 
 void turnDegrees(Stepper stepper, int deg){
-
+	stepper.step(deg * stepsPerDegree);
 }
