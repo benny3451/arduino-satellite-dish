@@ -2,6 +2,10 @@
 #include <Stepper.h>
 #include <Arduino.h>
 
+// Define
+#define PHOTO_DIODE_1 A0 // Photodiode 1 connected to A0
+#define PHOTO_DIODE_2 A1 // Photodiode 2 connected to A1
+
 // Defines the number of steps per rotation
 const int stepsPerRevolution = 4096;
 
@@ -15,19 +19,46 @@ const float stepsPerDegree = 11;
 Stepper stepperX = Stepper(stepsPerRevolution, 8, 10, 9, 11);
 Stepper stepperY = Stepper(stepsPerRevolution, 4, 5, 6, 7);
 
-void setup()
+// Pins für Widerstände
+const int ldrPin1 = A0;
+const int ldrPin2 = A1;
+int offset;
+
+int readLDR(int pin)
 {
-	// Nothing to do (Stepper Library sets pins as outputs)
-	Serial.begin(9600); // Open serial port at 9600 baud rate
-	stepperX.setSpeed(10);
-	stepperY.setSpeed(10);
+	long sum = 0;
+	const int samples = 10;
+	for (int i = 0; i < samples; i++)
+	{
+		sum += analogRead(pin);
+		delay(5); // Small delay for stability
+	}
+	return sum / samples;
 }
 
 void turnDegrees(Stepper stepper, int deg)
 {
+	stepperX.setSpeed(100);
+	stepperY.setSpeed(100);
+	stepper.step(deg * stepsPerDegree);
+}
+
+void setup()
+{
+	// Nothing to do (Stepper Library sets pins as outputs)
+	Serial.begin(9600); // Open serial port at 9600 baud rate
+	// pinMode(PHOTO_DIODE_1, INPUT);
+	// pinMode(PHOTO_DIODE_2, INPUT);
+
 	stepperX.setSpeed(10);
 	stepperY.setSpeed(10);
-	stepper.step(deg * stepsPerDegree);
+
+	turnDegrees(stepperX, 40);
+
+	int ldrValue1 = readLDR(ldrPin1);
+	int ldrValue2 = readLDR(ldrPin2);
+
+	offset = ldrValue1 - ldrValue2;
 }
 
 void processCommand(String command)
@@ -94,7 +125,33 @@ void track()
 
 void loop()
 {
+	int ldrValue1 = readLDR(ldrPin1);
+	int ldrValue2 = readLDR(ldrPin2);
 
+	int diff = ldrValue1 - ldrValue2;
+	int diffOhneOffset = diff - offset;
+
+	if (diffOhneOffset > 0)
+	{
+		Serial.println("got here 1");
+		stepperX.setSpeed(10);
+		turnDegrees(stepperX, 40);
+	}
+	else
+	{
+		Serial.println("got here 2");
+		stepperX.setSpeed(10);
+		turnDegrees(stepperX, -40);
+	}
+
+	Serial.print("LDR1: ");
+	Serial.print(ldrValue1);
+	Serial.print("  |  LDR2: ");
+	Serial.println(ldrValue2);
+	Serial.print("Difference:");
+	Serial.println(diffOhneOffset);
+
+	delay(500);
 	// if (Serial.available() > 0) { // Check if data is available
 	//     String command = Serial.readStringUntil('\n'); // Read input until newline
 	//     command.trim(); // Remove any extra whitespace or newline characters
@@ -103,13 +160,20 @@ void loop()
 	// 	// Serial.println(command);
 	// }
 
-	turnDegrees(stepperY, 180);
-
+	// turnDegrees(stepperY, 180);
 
 	// search();
 	// turnDegrees(stepperX, 180);
 
-	delay(100);
+	// int light1 = analogRead(PHOTO_DIODE_1); // Read light intensity from PD1
+	// int light2 = analogRead(PHOTO_DIODE_2); // Read light intensity from PD2
+
+	// // Print in a format suitable for Arduino Serial Plotter
+	// Serial.print(light1);
+	// Serial.print(",");
+	// Serial.println(light2);
+
+	// delay(100); // Small delay for readability
 
 	// // Rotate CCW quickly at 10 RPM
 	// stepperX.setSpeed(10);
